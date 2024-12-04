@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Page Scraper Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js -->
+    <style>
+        /* Reset basic styles */
+        body, h1, input, button, form, table {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Background and Font */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        /* Container Styles */
+        .container {
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        /* Header Styles */
+        .container h1 {
+            font-size: 24px;
+            color: #333333;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Form Styles */
+        .form label {
+            display: block;
+            text-align: left;
+            font-size: 14px;
+            color: #555555;
+            margin-bottom: 0.5rem;
+        }
+
+        .form input {
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            border: 1px solid #cccccc;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #333333;
+            transition: border-color 0.3s;
+        }
+
+        .form input:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
+        }
+
+        /* Button Styles */
+        .form-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .form-buttons button {
+            padding: 0.8rem 1.5rem;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            color: #ffffff;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .form-buttons button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Table Styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 2rem;
+        }
+
+        table th, table td {
+            border: 1px solid #dddddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .delete-button {
+            padding: 0.5rem 1rem;
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .delete-button:hover {
+            background-color: #cc0000;
+        }
+
+        .chart-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 2rem auto;
+        }
+
+        /* Dashboard Summary */
+        .dashboard-summary {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .dashboard-summary div {
+            background: #ffffff;
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.1);
+            flex: 1;
+            margin: 0 1rem;
+        }
+
+        .dashboard-summary div h2 {
+            margin-bottom: 0.5rem;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Facebook Page Scraper</h1>
+        <form method="POST" class="form">
+            <label for="page_url">Enter Facebook Page URL:</label>
+            <input type="text" id="page_url" name="page_url" placeholder="https://www.facebook.com/PageName" required>
+            <div class="form-buttons">
+                <button type="submit">Scrape</button>
+                <a href="/?order_by_date=true">
+                    <button type="button">Order by Date</button>
+                </a>
+            </div>
+        </form>
+        <!-- Separate Delete All Button -->
+        <form method="POST" action="/delete_all" style="margin-top: 1rem;">
+            <button type="submit" style="background-color: #ff4d4d; padding: 0.8rem 2rem; font-size: 16px;">Delete All</button>
+        </form>
+    </div>
+    
+
+    <!-- Dashboard Summary -->
+    <div class="dashboard-summary">
+        <div>
+            <h2>Total Pages</h2>
+            <p>{{ total_pages }}</p>
+        </div>
+        <div>
+            <h2>Unique Categories</h2>
+            <p>{{ unique_categories }}</p>
+        </div>
+        <div>
+            <h2>Total Followers</h2>
+            <p>{{ total_followers }}</p>
+        </div>
+    </div>
+
+    <!-- Display the Table -->
+    <div class="container">
+        <h1>Scraped Pages</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Followers</th>
+                    <th>Likes</th>
+                    <th>Website</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>URL</th>
+                    <th>Scraped At</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in data %}
+                <tr>
+                    <td>{{ item._id }}</td>
+                    <td>{{ item.page_name }}</td>
+                    <td>{{ item.page_category }}</td>
+                    <td>{{ item.page_followers }}</td>
+                    <td>{{ item.page_likes }}</td>
+                    <td>{{ item.page_website }}</td>
+                    <td>{{ item.page_email }}</td>
+                    <td>{{ item.page_phone }}</td>
+                    <td><a href="{{ item.page_url }}" target="_blank">Visit</a></td>
+                    <td>{{ item.scraped_at }}</td>
+                    <td>
+                        <form method="POST" action="/delete">
+                            <input type="hidden" name="id" value="{{ item._id }}">
+                            <button type="submit" class="delete-button">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Charts -->
+    <div class="chart-container">
+        <canvas id="categoryChart"></canvas>
+    </div>
+    <div class="chart-container">
+        <canvas id="followersChart"></canvas>
+    </div>
+
+    <script>
+        // Pie Chart Data from Flask
+        const categoryLabels = {{ chart_data.labels | safe }};
+        const categoryValues = {{ chart_data.values | safe }};
+
+        // Bar Chart Data from Flask
+        const topPagesLabels = {{ top_pages.labels | safe }};
+        const topPagesValues = {{ top_pages.values | safe }};
+
+        // Pie Chart Configuration
+        const ctx1 = document.getElementById('categoryChart').getContext('2d');
+        const categoryChart = new Chart(ctx1, {
+            type: 'pie',
+            data: {
+                labels: categoryLabels,
+                datasets: [{
+                    data: categoryValues,
+                    backgroundColor: ['#007bff', '#ff4d4d', '#28a745', '#ffc107', '#17a2b8', '#6f42c1'],
+                    borderColor: '#ffffff',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Bar Chart Configuration
+        const ctx2 = document.getElementById('followersChart').getContext('2d');
+        const followersChart = new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: topPagesLabels,
+                datasets: [{
+                    label: 'Followers',
+                    data: topPagesValues,
+                    backgroundColor: '#007bff',
+                    borderColor: '#ffffff',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Page Name'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Followers'
+                        }
+                    }
+                }
+            }
+        });
+        console.log("Category Chart Data:", categoryLabels, categoryValues);
+console.log("Followers Chart Data:", topPagesLabels, topPagesValues);
+
+
+
+    </script>
+</body>
+</html>
